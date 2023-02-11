@@ -119,7 +119,7 @@ def vacancy_id_events(vacancy_id):
                         }
         db_processing.insert_info('events', event_data)
     result = db_processing.select_info("SELECT * FROM events")
-    return render_template('event_add.html', events=result)
+    return render_template('event_add.html', events = result)
 
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
