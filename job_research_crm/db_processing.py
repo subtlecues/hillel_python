@@ -22,7 +22,7 @@ def select_info(qry):
 
 def insert_info(table_name, data):
     columns = ', '.join(data.keys())
-    placeholders = ':' + ', :'.join(data.values())
+    placeholders = ':' + ', :'.join(data.keys())
     query = 'INSERT INTO %s (%s) VALUES (%s)' % (table_name, columns, placeholders)
     conn = sqlite3.connect('vacancy_db.db')
     c = conn.cursor()

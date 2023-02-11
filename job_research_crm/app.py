@@ -77,34 +77,56 @@ def vacancy():
     if request.method == 'POST':
         position_name = request.form.get('position_name')
         company = request.form.get('company')
-        description =  request.form.get('description')
+        description = request.form.get('description')
         contacts_id = request.form.get('contacts_id')
         comment = request.form.get('comment')
-        vacancy_data = {'user_id': 1, 'creation_date': '04-02-2023 ', 'position_name': position_name, 'company': company, 'description': description, 'contacts_id': contacts_id, 'comment': comment}
+        vacancy_data = {'user_id': 1,
+                        'creation_date': '04-02-2023 ',
+                        'status': 0,
+                        'position_name': position_name,
+                        'company': company,
+                        'description': description,
+                        'contacts_id': contacts_id,
+                        'comment': comment}
         db_processing.insert_info('vacancy', vacancy_data)
-    return render_template('vacancy_add.html')
+    result = db_processing.select_info("SELECT * FROM vacancy")
+    return render_template('vacancy_add.html', vacancies = result)
+
 
 @app.route('/vacancy/<vacancy_id>', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
-    for vacancy in vacancies_data:
-        if vacancy['id'] == vacancy_id:
-            return vacancy # 'vacancy id'
+    if request.method == 'GET':
+        result = db_processing.select_info("SELECT * FROM vacancy where id = %s" % vacancy_id)
+        return render_template('vacancy_add.html', vacancies = result)
+
 
 
 @app.route('/vacancy/<vacancy_id>/events', methods=['GET', 'POST'])
 def vacancy_id_events(vacancy_id):
-    events_list = []
-    for event in events_data:
-        if event['vacancy_id'] == vacancy_id:
-            events_list.append(event)
-    return events_list
+    if request.method == 'POST':
+        description = request.form.get('description')
+        event_date = request.form.get('event_date')
+        title = request.form.get('title')
+        due_to_date = request.form.get('due_to_date')
+        event_data = {
+                        'id': vacancy_id,
+                        'user_id': 1,
+                        'description': description,
+                        'event_date': event_date,
+                        'title': title,
+                        'due_to_date': due_to_date,
+                        'status': 0,
+                        }
+        db_processing.insert_info('events', event_data)
+    result = db_processing.select_info("SELECT * FROM events")
+    return render_template('event_add.html', events=result)
 
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
 def vacancy_id_events_id(vacancy_id, event_id):
-    for event in events_data:
-        if event['id'] == event_id:
-            return event
+    if request.method == 'GET':
+        result = db_processing.select_info("SELECT * FROM vacancy where vacancy_id = %s id = %s" % (vacancy_id, event_id))
+        return render_template('event_add.html', events=result)
 
 @app.route('/vacancy/history', methods=['GET'])
 def vacancy_history():
