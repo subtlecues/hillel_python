@@ -1,5 +1,6 @@
 from flask import Flask
-from flask import request
+from flask import request, render_template
+import db_processing
 
 app = Flask(__name__)
 
@@ -73,8 +74,15 @@ events_data = [
 
 @app.route('/vacancy', methods=['GET', 'POST'])
 def vacancy():
-    return vacancies_data # 'vacancies'
-
+    if request.method == 'POST':
+        position_name = request.form.get('position_name')
+        company = request.form.get('company')
+        description =  request.form.get('description')
+        contacts_id = request.form.get('contacts_id')
+        comment = request.form.get('comment')
+        vacancy_data = {'user_id': 1, 'creation_date': '04-02-2023 ', 'position_name': position_name, 'company': company, 'description': description, 'contacts_id': contacts_id, 'comment': comment}
+        db_processing.insert_info('vacancy', vacancy_data)
+    return render_template('vacancy_add.html')
 
 @app.route('/vacancy/<vacancy_id>', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
