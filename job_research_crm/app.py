@@ -2,6 +2,9 @@ from flask import Flask
 from flask import request, render_template
 import db_processing
 
+
+
+
 app = Flask(__name__)
 
 vacancies_data = [
@@ -72,7 +75,7 @@ events_data = [
 ]
 
 
-@app.route('/vacancy', methods=['GET', 'POST'])
+@app.route('/vacancy', methods=['GET', 'POST', 'PUT'])
 def vacancy():
     if request.method == 'POST':
         position_name = request.form.get('position_name')
@@ -88,16 +91,30 @@ def vacancy():
                         'description': description,
                         'contacts_id': contacts_id,
                         'comment': comment}
-        db_processing.insert_info('vacancy', vacancy_data)
-    result = db_processing.select_info("SELECT * FROM vacancy")
-    return render_template('vacancy_add.html', vacancies = result)
+        with db_processing.DB() as db:
+            result = db.insert('vacancy', vacancy_data)
+            return result
+    elif request.method == 'PUT':
+        pass
+    else:
+        with db_processing.DB() as db:
+            result = db.query('select * from vacancy')
+        return render_template('vacancy_add.html', vacancies = result)
 
 
 @app.route('/vacancy/<vacancy_id>', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
     if request.method == 'GET':
-        result = db_processing.select_info("SELECT * FROM vacancy where id = %s" % vacancy_id)
-        return render_template('vacancy_add.html', vacancies = result)
+        with db_processing.DB() as db:
+            vacancy = db.query(f'SELECT * FROM vacancy where id = {vacancy_id}')
+        return vacancy
+    else:
+        with db_processing.DB as db:
+            vacancy = db.insert(f'SELECT * FROM vacancy where id = {vacancy_id}')
+        return vacancy
+    # if request.method == 'GET':
+    #     result = db_processing.select_info("SELECT * FROM vacancy where id = %s" % vacancy_id)
+    #     return render_template('vacancy_add.html', vacancies = result)
 
 
 
@@ -117,15 +134,21 @@ def vacancy_id_events(vacancy_id):
                         'due_to_date': due_to_date,
                         'status': 0,
                         }
-        db_processing.insert_info('events', event_data)
-    result = db_processing.select_info("SELECT * FROM events")
+        with db_processing.DB as db:
+            result = db.insert('events', event_data)
+            return result
+
+    else:
+        with db_processing.DB as db:
+            result = db.query("SELECT * FROM events")
     return render_template('event_add.html', events = result)
 
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
 def vacancy_id_events_id(vacancy_id, event_id):
     if request.method == 'GET':
-        result = db_processing.select_info("SELECT * FROM vacancy where vacancy_id = %s id = %s" % (vacancy_id, event_id))
+        with db_processing.DB as db:
+            result = db.query("SELECT * FROM vacancy where vacancy_id = %s id = %s" % (vacancy_id, event_id))
         return render_template('event_add.html', events=result)
 
 @app.route('/vacancy/history', methods=['GET'])
