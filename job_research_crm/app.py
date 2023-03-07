@@ -1,8 +1,8 @@
 from flask import Flask
 from flask import request, render_template
-import db_processing
-
-
+# import db_processing
+import al_db
+from models import Vacancy, Event
 
 
 app = Flask(__name__)
@@ -13,7 +13,7 @@ vacancies_data = [
      'creation_date': '03.02.2023',
      'status': 1,
      'company': 'GPQR',
-     'contacts_ids': [1,2],
+     'contacts_ids': [1, 2],
      'description': 'Vaca desc',
      'position_name': 'Junior Py dev',
      'comment': 'mild reqs and cool salary',
@@ -24,7 +24,7 @@ vacancies_data = [
      'creation_date': '04.02.2023',
      'status': 2,
      'company': 'Balance',
-     'contacts_ids': [2,4],
+     'contacts_ids': [2, 4],
      'description': 'Vaca desc',
      'position_name': 'Trainee Py dev',
      'comment': 'mild reqs and cool salary',
@@ -35,7 +35,7 @@ vacancies_data = [
      'creation_date': '05.02.2023',
      'status': 1,
      'company': 'Future',
-     'contacts_ids': [5,6],
+     'contacts_ids': [5, 6],
      'description': 'Vaca desc',
      'position_name': 'Junior Py dev',
      'comment': 'mild reqs and cool salary',
@@ -77,78 +77,58 @@ events_data = [
 
 @app.route('/vacancy', methods=['GET', 'POST', 'PUT'])
 def vacancy():
+    al_db.init_db()
+
+    # with db_processing.DB() as db:
     if request.method == 'POST':
         position_name = request.form.get('position_name')
         company = request.form.get('company')
         description = request.form.get('description')
         contacts_id = request.form.get('contacts_id')
         comment = request.form.get('comment')
-        vacancy_data = {'user_id': 1,
-                        'creation_date': '04-02-2023 ',
-                        'status': 0,
-                        'position_name': position_name,
-                        'company': company,
-                        'description': description,
-                        'contacts_id': contacts_id,
-                        'comment': comment}
-        with db_processing.DB() as db:
-            result = db.insert('vacancy', vacancy_data)
-            return result
+
+        current_vacancy = Vacancy(position_name, company, description, contacts_id, comment, 1, 1)
+        al_db.db_session.add(current_vacancy)
+        al_db.db_session.commit()
     elif request.method == 'PUT':
         pass
-    else:
-        with db_processing.DB() as db:
-            result = db.query('select * from vacancy')
-        return render_template('vacancy_add.html', vacancies = result)
+    result = al_db.db_session.query(Vacancy).all()
+    return render_template('vacancy_add.html', vacancies=result)
 
 
 @app.route('/vacancy/<vacancy_id>', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
+    al_db.init_db()
     if request.method == 'GET':
-        with db_processing.DB() as db:
-            vacancy = db.query(f'SELECT * FROM vacancy where id = {vacancy_id}')
-        return vacancy
+        result = al_db.db_session.query(Vacancy).filter_by(id=vacancy_id).all()
+        return render_template('vacancy_add.html', vacancies=result)
     else:
-        with db_processing.DB as db:
-            vacancy = db.insert(f'SELECT * FROM vacancy where id = {vacancy_id}')
-        return vacancy
-    # if request.method == 'GET':
-    #     result = db_processing.select_info("SELECT * FROM vacancy where id = %s" % vacancy_id)
-    #     return render_template('vacancy_add.html', vacancies = result)
-
+        vacancy = al_db.db_session.add(Vacancy).filterby(id=vacancy_id).all()
+        return vacancy, al_db.db_session.commit()
 
 
 @app.route('/vacancy/<vacancy_id>/events', methods=['GET', 'POST'])
 def vacancy_id_events(vacancy_id):
+    al_db.init_db()
     if request.method == 'POST':
         description = request.form.get('description')
         event_date = request.form.get('event_date')
         title = request.form.get('title')
         due_to_date = request.form.get('due_to_date')
-        event_data = {
-                        'id': vacancy_id,
-                        'user_id': 1,
-                        'description': description,
-                        'event_date': event_date,
-                        'title': title,
-                        'due_to_date': due_to_date,
-                        'status': 0,
-                        }
-        with db_processing.DB as db:
-            result = db.insert('events', event_data)
-            return result
+
+        current_event = Event(title, description, due_to_date, status=1)
+        al_db.db_session.add(current_event)
+        al_db.db_session.commit()
 
     else:
-        with db_processing.DB as db:
-            result = db.query("SELECT * FROM events")
-    return render_template('event_add.html', events = result)
+        result = al_db.db_session.query(Event).all()
+        return render_template('event_add.html', events=result)
 
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
 def vacancy_id_events_id(vacancy_id, event_id):
     if request.method == 'GET':
-        with db_processing.DB as db:
-            result = db.query("SELECT * FROM vacancy where vacancy_id = %s id = %s" % (vacancy_id, event_id))
+        result = al_db.db_session.query(Event).filter_by(vacancy_id=vacancy_id, id=event_id).all()
         return render_template('event_add.html', events=result)
 
 @app.route('/vacancy/history', methods=['GET'])
