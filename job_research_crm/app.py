@@ -75,6 +75,11 @@ events_data = [
 ]
 
 
+@app.route('/')
+def hello():
+    return 'Hello world! '
+
+
 @app.route('/vacancy', methods=['GET', 'POST', 'PUT'])
 def vacancy():
     al_db.init_db()
@@ -167,4 +172,4 @@ def user_templates():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5004)
+    app.run(host="0.0.0.0", port=5000)
