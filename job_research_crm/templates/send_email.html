@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Send email</title>
+</head>
+<body>
+<form action="/user/email/" method="post">
+    <input type="text" name="recipient" placeholder="recipient">
+    <input type="text" name="email_message" placeholder="email_message">
+    <input type="submit" value="submit">
+</form>
+
+{% for one_email in emails %}
+
+{{ one_email }}
+<br><p>
+
+{% endfor %}
+</body>
+</html>

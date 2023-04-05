@@ -23,12 +23,17 @@ class User(Base):
 class EmailCredentials(Base):
     __tablename__ = 'email_credentials'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     email = Column(String(120), unique=True, nullable=False)
     login = Column(String(120), unique=True, nullable=False)
     password = Column(String(120), nullable=False)
-    pop_server = Column(String(120), nullable=False)
-    smtp_server = Column(String(120), nullable=False)
+    pop_server = Column(String(120), nullable=True)
+    imap_server = Column(String(120), nullable=True)
+    smtp_server = Column(String(120), nullable=True)
+    pop_port = Column(Integer, nullable=True)
+    imap_port = Column(Integer, nullable=True)
+    smtp_port = Column(Integer, nullable=True)
+
 
     def __init__(self, login, password):
         self.login = login

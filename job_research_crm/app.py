@@ -2,7 +2,8 @@ from flask import Flask
 from flask import request, render_template
 # import db_processing
 import al_db
-from models import Vacancy, Event
+import email_lib
+from models import Vacancy, Event, EmailCredentials
 
 
 app = Flask(__name__)
@@ -151,13 +152,31 @@ def user_calendar():
     return 'user calendar'
 
 
-@app.route('/user/email', methods=['GET'])
+@app.route('/user/email/', methods=['GET', 'POST'])
 def user_email():
-    return 'user email'
+    user_settings = al_db.db_session.query(EmailCredentials).filter_by(user_id=1).first()
+    email_object = email_lib.EmailWrapper(
+        user_settings.login,
+        user_settings.password,
+        user_settings.email,
+        user_settings.smtp_server,
+        user_settings.smtp_port,
+        user_settings.pop_server,
+        user_settings.pop_port,
+        user_settings.imap_server,
+        user_settings.imap_port
+    )
+    if request.method == 'POST':
+        recipient = request.form.get('recipient')
+        email_message = request.form.get('email_message')
+        email_object.send_email(recipient, email_message)
+        return 'Mail sent'
+    emails = email_object.get_emails([1], protocol='pop3')
+    return render_template('send_email.html', emails=emails)
 
 
 @app.route('/user/settings', methods=['GET', 'PUT'])
-def user_settings():
+def show_user_settings():
     return 'user settings'
 
 
@@ -172,4 +191,4 @@ def user_templates():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5030)
