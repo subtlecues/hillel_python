@@ -1,79 +1,12 @@
 from flask import Flask
 from flask import request, render_template
 # import db_processing
-import al_db
-import email_lib
+import al_db, email_lib, mongo_lib
 from models import Vacancy, Event, EmailCredentials
+from bson.objectid import ObjectId
 
 
 app = Flask(__name__)
-
-vacancies_data = [
-    {
-     'id': 1,
-     'creation_date': '03.02.2023',
-     'status': 1,
-     'company': 'GPQR',
-     'contacts_ids': [1, 2],
-     'description': 'Vaca desc',
-     'position_name': 'Junior Py dev',
-     'comment': 'mild reqs and cool salary',
-     'user_id': 1
-    },
-    {
-     'id': 2,
-     'creation_date': '04.02.2023',
-     'status': 2,
-     'company': 'Balance',
-     'contacts_ids': [2, 4],
-     'description': 'Vaca desc',
-     'position_name': 'Trainee Py dev',
-     'comment': 'mild reqs and cool salary',
-     'user_id': 1
-    },
-    {
-     'id': 3,
-     'creation_date': '05.02.2023',
-     'status': 1,
-     'company': 'Future',
-     'contacts_ids': [5, 6],
-     'description': 'Vaca desc',
-     'position_name': 'Junior Py dev',
-     'comment': 'mild reqs and cool salary',
-     'user_id': 1
-    }
-]
-
-events_data = [
-    {
-        'id': 1,
-        'vacancy_id': 1,
-        'description': 'blablabla',
-        'event_date': '10.02.2023',
-        'title': ' Event title',
-        'due_to_date': '15.02.2023',
-        'status': 1
-    },
-    {
-        'id': 2,
-        'vacancy_id': 2,
-        'description': 'blablabla2',
-        'event_date': '12.02.2023',
-        'title': ' Event title',
-        'due_to_date': '16.02.2023',
-        'status': 1
-    },
-    {
-        'id': 3,
-        'vacancy_id': 3,
-        'description': 'blablabla3',
-        'event_date': '13.02.2023',
-        'title': ' Event title',
-        'due_to_date': '17.02.2023',
-        'status': 1
-    },
-
-]
 
 
 @app.route('/')
@@ -85,24 +18,39 @@ def hello():
 def vacancy():
     al_db.init_db()
 
-    # with db_processing.DB() as db:
     if request.method == 'POST':
         position_name = request.form.get('position_name')
         company = request.form.get('company')
         description = request.form.get('description')
-        contacts_id = request.form.get('contacts_id')
+        contact_name = request.form.get('contact_name')
+        contact_email = request.form.get('contact_email')
+        contact_phone = request.form.get('contact_phone')
         comment = request.form.get('comment')
 
-        current_vacancy = Vacancy(position_name, company, description, contacts_id, comment, 1, 1)
+        contact_id_insert = mongo_lib.contacts_collection.insert_one(
+            {"name": contact_name, "email": contact_email, "phone": contact_phone}
+        ).inserted_id
+
+        current_vacancy = Vacancy(position_name, company, description, str(contact_id_insert), comment, 1, 1)
         al_db.db_session.add(current_vacancy)
         al_db.db_session.commit()
+
     elif request.method == 'PUT':
         pass
-    result = al_db.db_session.query(Vacancy).all()
-    return render_template('vacancy_add.html', vacancies=result)
+    result = al_db.db_session.query(Vacancy.position_name, Vacancy.company, Vacancy.contacts_id).all()
+    result_data = []
+    for item in result:
+        contacts = item[2].split(',')
+        contacts_result = []
+        for one_contact in contacts:
+            data = mongo_lib.contacts_collection.find_one({'_id': ObjectId(one_contact)})
+            contacts_result.append(data)
+
+        result_data.append({'position_name': item[0], 'company': item[1], 'contacts': contacts_result})
+    return render_template('vacancy_add.html', vacancies=result_data)
 
 
-@app.route('/vacancy/<vacancy_id>', methods=['GET', 'PUT'])
+@app.route('/vacancy/<vacancy_id>/', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
     al_db.init_db()
     if request.method == 'GET':

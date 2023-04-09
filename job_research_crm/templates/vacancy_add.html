@@ -12,12 +12,25 @@
     <input type="text" name="position_name" placeholder="position_name">
     <input type="text" name="company" placeholder="company">
     <input type="text" name="description" placeholder="description">
-    <input type="text" name="contacts_id" placeholder="contacts_id">
+    <input type="text" name="contact_name" placeholder="contact name">
+    <input type="text" name="contact_email" placeholder="contact email">
+    <input type="text" name="contact_phone" placeholder="contact phone">
     <input type="text" name="comment" placeholder="comment">
     <input type="submit" value="Add vacancy">
 </form>
 <div>
-    {{vacancies}}
+    {% for vacancy in vacancies %}
+<!--    {{vacancy}}<br>-->
+        Company: {{ vacancy.company}}<br>
+        Position: {{ vacancy.position_name}}<br>
+        {% for one_contact in vacancy.contacts %}
+            Name: {{ one_contact.name }}<br>
+            Email: {{ one_contact.email }}<br>
+            Phone: {{ one_contact.phone }}<br>
+            <br>===================<br>
+        {% endfor %}
+    <br> -----------------------<br>
+    {% endfor %}
 </div>
 </body>
 </html>
