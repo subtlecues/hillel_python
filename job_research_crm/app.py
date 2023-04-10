@@ -1,7 +1,8 @@
 from flask import Flask
 from flask import request, render_template
 # import db_processing
-import al_db, email_lib, mongo_lib
+import al_db, email_lib
+from mongo_lib import MongoLibrary
 from models import Vacancy, Event, EmailCredentials
 from bson.objectid import ObjectId
 
@@ -27,7 +28,7 @@ def vacancy():
         contact_phone = request.form.get('contact_phone')
         comment = request.form.get('comment')
 
-        contact_id_insert = mongo_lib.contacts_collection.insert_one(
+        contact_id_insert = MongoLibrary.contacts_collection.insert_one(
             {"name": contact_name, "email": contact_email, "phone": contact_phone}
         ).inserted_id
 
@@ -43,7 +44,7 @@ def vacancy():
         contacts = item[2].split(',')
         contacts_result = []
         for one_contact in contacts:
-            data = mongo_lib.contacts_collection.find_one({'_id': ObjectId(one_contact)})
+            data = MongoLibrary.contacts_collection.find_one({'_id': ObjectId(one_contact)})
             contacts_result.append(data)
 
         result_data.append({'position_name': item[0], 'company': item[1], 'contacts': contacts_result})
