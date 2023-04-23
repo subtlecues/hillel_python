@@ -1,4 +1,5 @@
-###lucky ticket with multiprocessing
+###lucky ticket function
+# with ability of with multiprocessing
 
 
 import multiprocessing

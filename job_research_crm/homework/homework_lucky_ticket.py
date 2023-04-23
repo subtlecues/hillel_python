@@ -1,4 +1,4 @@
-### lucky ticket fucntion.
+### lucky ticket finding fuction
 # check next file for multiprocessing
 
 count = 0
