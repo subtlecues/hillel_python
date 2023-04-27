@@ -6,6 +6,8 @@ from mongo_lib import MongoLibrary
 from models import Vacancy, Event, EmailCredentials
 from bson.objectid import ObjectId
 
+from celery_worker import send_email
+
 
 app = Flask(__name__)
 
@@ -39,8 +41,10 @@ def vacancy():
     elif request.method == 'PUT':
         pass
     result = al_db.db_session.query(Vacancy.position_name, Vacancy.company, Vacancy.contacts_id).all()
+
     result_data = []
     for item in result:
+
         contacts = item[2].split(',')
         contacts_result = []
         for one_contact in contacts:
@@ -48,7 +52,8 @@ def vacancy():
             contacts_result.append(data)
 
         result_data.append({'position_name': item[0], 'company': item[1], 'contacts': contacts_result})
-    return render_template('vacancy_add.html', vacancies=result_data)
+
+    return render_template('vacancy_add.html', vacancies = result_data)
 
 
 @app.route('/vacancy/<vacancy_id>/', methods=['GET', 'PUT'])
@@ -76,17 +81,24 @@ def vacancy_id_events(vacancy_id):
         al_db.db_session.commit()
 
     else:
-        result = al_db.db_session.query(Event).all()
-        return render_template('event_add.html', events=result)
+        result = al_db.db_session.query(Event).filter_by(vacancy_id=vacancy_id).all()
+        return render_template('event_add.html', events=result, vacancy_id=vacancy_id)
 
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
 def vacancy_id_events_id(vacancy_id, event_id):
-    if request.method == 'GET':
-        result = al_db.db_session.query(Event).filter_by(vacancy_id=vacancy_id, id=event_id).all()
-        return render_template('event_add.html', events=result)
+    al_db.init_db()
+    if request.method == 'POST':
+        status = request.form.get('status')
+        due_to_date = request.form.get('deadline')
+        al_db.db_session.query(Event).filter_by(id=event_id).\
+            update({'status': status, 'due_to_date': due_to_date})
+        al_db.db_session.commit()
+        qry = al_db.db_session.query(Event).filter_by(id=event_id).all()
+        return render_template('events_show_by_id_put.html', event_select=qry,
+                               vacancy_id=vacancy_id, event_id=event_id)
 
-@app.route('/vacancy/history', methods=['GET'])
+@app.route('/vacancy/<vacancy_id>/history', methods=['GET'])
 def vacancy_history():
     return 'vacancy history'
 
@@ -118,7 +130,8 @@ def user_email():
     if request.method == 'POST':
         recipient = request.form.get('recipient')
         email_message = request.form.get('email_message')
-        email_object.send_email(recipient, email_message)
+        # email_object.send_email(recipient, email_message)
+        send_email.apply_async(args=[user_settings.id, recipient, email_message])
         return 'Mail sent'
     emails = email_object.get_emails([1], protocol='pop3')
     return render_template('send_email.html', emails=emails)

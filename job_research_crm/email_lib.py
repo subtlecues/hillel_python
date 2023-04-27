@@ -58,17 +58,3 @@ class EmailWrapper:
         return result
 
 
-# os.environ.get('EMAIL_PASSWORD')
-# import poplib
-#
-# M = poplib.POP3_SSL('pop.gmail.com')
-# M.port = 995
-# M.user('dmitriy.vaskovets@gmail.com')
-# M.pass_(os.environ.get('EMAIL_PASSWORD'))
-# print(M.stat())
-# print(M.list())
-# # numMessages = len(M.list()[1])
-# # for i in range(numMessages):
-# #     for j in M.retr(i+1)[1]:
-#         print(j)
-
