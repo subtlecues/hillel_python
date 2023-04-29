@@ -11,10 +11,12 @@ class User(Base):
     login = Column(String(50), unique=True)
     password = Column(String(120))
 
-    def __init__(self, name, email, password):
+    def __init__(self, name, login, password, email):
         self.name = name
+        self.login = login
         self.email = email
         self.password = password
+
 
     def __repr__(self):
         return f'<User {self.name}'

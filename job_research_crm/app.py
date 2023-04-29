@@ -1,24 +1,76 @@
-from flask import Flask
-from flask import request, render_template
+from flask import Flask, redirect, url_for, flash
+from flask import request, render_template, session
 # import db_processing
 import al_db, email_lib
 from mongo_lib import MongoLibrary
-from models import Vacancy, Event, EmailCredentials
+from models import Vacancy, Event, EmailCredentials, User
 from bson.objectid import ObjectId
-
 from celery_worker import send_email
 
 
 app = Flask(__name__)
-
+app.secret_key = 'sdfhjFSDhjsd24hksadg'
 
 @app.route('/')
-def hello():
-    return 'Hello world! '
+def home():
+    current_user = session.get('user_name', None)
+    return render_template('home.html', title='Almighty CRM', user_name=current_user)
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        user_login = request.form.get('user_login')
+        password = request.form.get('password')
+        user_name = request.form.get('user_name')
+        user_email = request.form.get('user_email')
+        if user_login == '' or \
+                password == '':
+            flash('Wrong login or password')
+            return redirect(url_for('register'))
+        if user_name == '' or \
+                user_email == '':
+            flash('Wrong name or e-mail')
+            return redirect(url_for('register'))
+        user = User(name=user_name, login=user_login, password=password, email=user_email)
+        try:
+            al_db.db_session.add(user)
+            al_db.db_session.commit()
+        except Exception as error:
+            print(error)
+
+        #
+        # session['user_id'] = user.id
+        # session['user_login'] = user.name
+        return redirect(url_for('home'))
+    return render_template('register.html', title='Registration')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        user_login = request.form.get('user_login')
+        password = request.form.get('password')
+        if user_login == '' or \
+                password == '':
+            flash('Wrong user login or password')
+            return redirect(url_for('login'))
+        user = al_db.db_session.query(User).filter(User.login == user_login).first()
+        if user is None:
+            flash('User not found')
+            return redirect(url_for('login'))
+        if user.password != password:
+            flash('Wrong password')
+            return redirect(url_for('login'))
+        session['user_id'] = user.id
+        session['user_name'] = user.name
+        return redirect(url_for('home'))
+    return render_template('login.html')
 
 @app.route('/vacancy', methods=['GET', 'POST', 'PUT'])
 def vacancy():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
+
     al_db.init_db()
 
     if request.method == 'POST':
@@ -55,9 +107,17 @@ def vacancy():
 
     return render_template('vacancy_add.html', vacancies = result_data)
 
+@app.route('/logout', methods=['GET'])
+def logout():
+    session.pop('user_id', None)
+    session.pop('user_name', None)
+    return redirect(url_for('home'))
+
 
 @app.route('/vacancy/<vacancy_id>/', methods=['GET', 'PUT'])
 def vacancy_id(vacancy_id):
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     al_db.init_db()
     if request.method == 'GET':
         result = al_db.db_session.query(Vacancy).filter_by(id=vacancy_id).all()
@@ -69,6 +129,8 @@ def vacancy_id(vacancy_id):
 
 @app.route('/vacancy/<vacancy_id>/events', methods=['GET', 'POST'])
 def vacancy_id_events(vacancy_id):
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     al_db.init_db()
     if request.method == 'POST':
         description = request.form.get('description')
@@ -87,6 +149,8 @@ def vacancy_id_events(vacancy_id):
 
 @app.route('/vacancy/<vacancy_id>/events/<event_id>', methods=['GET', 'PUT'])
 def vacancy_id_events_id(vacancy_id, event_id):
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     al_db.init_db()
     if request.method == 'POST':
         status = request.form.get('status')
@@ -100,22 +164,32 @@ def vacancy_id_events_id(vacancy_id, event_id):
 
 @app.route('/vacancy/<vacancy_id>/history', methods=['GET'])
 def vacancy_history():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'vacancy history'
 
 
 @app.route('/user', methods=['GET'])
 def user_main_page():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'user dashboard'
 
 
 @app.route('/user/calendar', methods=['GET'])
 def user_calendar():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'user calendar'
 
 
 @app.route('/user/email/', methods=['GET', 'POST'])
 def user_email():
-    user_settings = al_db.db_session.query(EmailCredentials).filter_by(user_id=1).first()
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
+    user_id = session.get('user_id')
+    user_settings = al_db.db_session.query(EmailCredentials).filter_by(user_id=user_id).first()
+    ### has to be changed to user_id=user_id from the session. will change afterwards
     email_object = email_lib.EmailWrapper(
         user_settings.login,
         user_settings.password,
@@ -139,16 +213,22 @@ def user_email():
 
 @app.route('/user/settings', methods=['GET', 'PUT'])
 def show_user_settings():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'user settings'
 
 
 @app.route('/user/documents', methods=['GET', 'POST'])
 def user_docs():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'user documents'
 
 
 @app.route('/user/templates', methods=['GET', 'PUT', 'POST', 'DELETE'])
 def user_templates():
+    if session.get('user_id', None) is None:
+        return redirect(url_for('login'))
     return 'user templates'
 
 
